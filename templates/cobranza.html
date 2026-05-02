@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cobranza - Sistema de Gestión</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Menú lateral -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-dark sidebar min-vh-100">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <img src="https://via.placeholder.com/80x80?text=Logo" class="rounded-circle" alt="Logo">
+                        <h6 class="text-white mt-2">{{ usuario.nombre or usuario.username }}</h6>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item"><a class="nav-link text-white" href="/dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link text-white" href="/general"><i class="fas fa-users"></i> General</a></li>
+                        <li class="nav-item"><a class="nav-link text-white active bg-primary" href="/cobranza"><i class="fas fa-credit-card"></i> Cobranza</a></li>
+                        <li class="nav-item"><a class="nav-link text-white" href="/suscripciones"><i class="fas fa-calendar-alt"></i> Suscripciones</a></li>
+                        <li class="nav-item"><a class="nav-link text-white" href="/logout"><i class="fas fa-sign-out-alt"></i> Salir</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Contenido principal -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1><i class="fas fa-credit-card"></i> Módulo de Cobranza</h1>
+                </div>
+
+                <!-- Alertas -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-lock"></i> Registrar Datos de Pago (Encriptados)</h5>
+                            </div>
+                            <div class="card-body">
+                                <form method="POST">
+                                    <div class="mb-3">
+                                        <label for="cliente_id" class="form-label">Cliente *</label>
+                                        <select class="form-select" id="cliente_id" name="cliente_id" required>
+                                            <option value="">Seleccione un cliente...</option>
+                                            {% for cliente in clientes %}
+                                            <option value="{{ cliente.id }}">{{ cliente.apellido }}, {{ cliente.nombre }} - {{ cliente.documento_identidad }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Tipo de Pago *</label>
+                                        <div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="tipo" id="tarjeta" value="tarjeta" checked>
+                                                <label class="form-check-label" for="tarjeta">
+                                                    <i class="fas fa-credit-card"></i> Tarjeta de Crédito
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="tipo" id="cuenta" value="cuenta_bancaria">
+                                                <label class="form-check-label" for="cuenta">
+                                                    <i class="fas fa-university"></i> Cuenta Bancaria
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Campos para Tarjeta -->
+                                    <div id="campos_tarjeta">
+                                        <div class="mb-3">
+                                            <label for="numero_tarjeta" class="form-label">Número de Tarjeta *</label>
+                                            <input type="text" class="form-control" id="numero_tarjeta" name="numero_tarjeta" placeholder="**** **** **** ****" maxlength="19">
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="caducidad" class="form-label">Fecha Caducidad *</label>
+                                                <input type="text" class="form-control" id="caducidad" name="caducidad" placeholder="MM/YY">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="cvv" class="form-label">CVV *</label>
+                                                <input type="password" class="form-control" id="cvv" name="cvv" placeholder="***" maxlength="4">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Campos para Cuenta Bancaria -->
+                                    <div id="campos_cuenta" style="display: none;">
+                                        <div class="mb-3">
+                                            <label for="iban" class="form-label">IBAN *</label>
+                                            <input type="text" class="form-control" id="iban" name="iban" placeholder="ES00 0000 0000 0000 0000 0000">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="bic" class="form-label">BIC/SWIFT</label>
+                                            <input type="text" class="form-control" id="bic" name="bic" placeholder="AAAAXXBBXXX">
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-info mt-3">
+                                        <i class="fas fa-shield-alt"></i> <strong>Seguridad:</strong> Los datos se encriptan antes de almacenar en la base de datos.
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-save"></i> Guardar Datos Encriptados
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0"><i class="fas fa-history"></i> Últimos pagos registrados</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Cliente</th>
+                                                <th>Tipo</th>
+                                                <th>Referencia</th>
+                                                <th>Fecha</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for pago in ultimos_pagos %}
+                                            <tr>
+                                                <td>{{ pago.cliente.apellido }}, {{ pago.cliente.nombre }}</td>
+                                                <td>
+                                                    {% if pago.tipo == 'tarjeta' %}
+                                                        <i class="fas fa-credit-card"></i> Tarjeta
+                                                    {% else %}
+                                                        <i class="fas fa-university"></i> Banco
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if pago.ultimos_4_digitos %}
+                                                        **** {{ pago.ultimos_4_digitos }}
+                                                    {% else %}
+                                                        ---
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ pago.fecha_registro.strftime('%d/%m/%Y') }}</td>
+                                            </tr>
+                                            {% else %}
+                                            <tr>
+                                                <td colspan="4" class="text-center">No hay pagos registrados</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Mostrar/ocultar campos según tipo de pago
+        document.querySelectorAll('input[name="tipo"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.value === 'tarjeta') {
+                    document.getElementById('campos_tarjeta').style.display = 'block';
+                    document.getElementById('campos_cuenta').style.display = 'none';
+                } else {
+                    document.getElementById('campos_tarjeta').style.display = 'none';
+                    document.getElementById('campos_cuenta').style.display = 'block';
+                }
+            });
+        });
+
+        // Formatear número de tarjeta
+        document.getElementById('numero_tarjeta')?.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 16) value = value.slice(0, 16);
+            value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+            e.target.value = value;
+        });
+    </script>
+</body>
+</html>
